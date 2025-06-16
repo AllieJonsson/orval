@@ -150,10 +150,7 @@ export const writeSplitTagsMode = async ({
           });
         }
 
-        if (
-          implementation.includes('NonReadonly<') ||
-          implementation.includes('TypedResponse<')
-        ) {
+        if (implementation.includes('NonReadonly<')) {
           implementationData += getOrvalGeneratedTypes();
           implementationData += '\n';
         }

@@ -131,10 +131,7 @@ export const writeTagsMode = async ({
 
         data += '\n\n';
 
-        if (
-          implementation.includes('NonReadonly<') ||
-          implementation.includes('TypedResponse<')
-        ) {
+        if (implementation.includes('NonReadonly<')) {
           data += getOrvalGeneratedTypes();
           data += '\n';
         }
