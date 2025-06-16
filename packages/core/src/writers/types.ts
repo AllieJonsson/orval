@@ -31,9 +31,3 @@ interface TypedResponse<T> extends Response {
   json(): Promise<T>;
 }
 `;
-
-export const getTypedResponse = () => `
-interface TypedResponse<T> extends Response {
-  json(): Promise<T>;
-}
-`;
