@@ -39,6 +39,7 @@ import {
   RefComponentSuffix,
   type SwaggerParserOptions,
   upath,
+  type FullOutputOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
@@ -107,7 +108,7 @@ export const normalizeOptions = async (
 
   const outputOptions = isString(options.output)
     ? { target: options.output }
-    : options.output;
+    : (options.output as FullOutputOptions);
 
   const outputWorkspace = normalizePath(
     outputOptions.workspace || '',

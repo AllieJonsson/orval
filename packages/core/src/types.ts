@@ -98,17 +98,17 @@ export type NormalizedOverrideOutput = {
       suffix: string;
     };
   };
-  hono: NormalizedHonoOptions;
-  query: NormalizedQueryOptions;
-  angular: Required<AngularOptions>;
-  swr: SwrOptions;
-  zod: NormalizedZodOptions;
-  fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
     verb: Verbs,
   ) => string;
+  angular: Required<AngularOptions>;
+  hono: NormalizedHonoOptions;
+  query: NormalizedQueryOptions;
+  swr: SwrOptions;
+  zod: NormalizedZodOptions;
+  fetch: NormalizedFetchOptions;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
   coerceTypes?: boolean; // deprecated
@@ -137,16 +137,11 @@ export type NormalizedOperationOptions = {
     properties?: MockProperties;
   };
   contentType?: OverrideOutputContentType;
-  query?: NormalizedQueryOptions;
-  angular?: Required<AngularOptions>;
-  swr?: SwrOptions;
-  zod?: NormalizedZodOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
     verb: Verbs,
   ) => string;
-  fetch?: FetchOptions;
   formData?: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded?: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
@@ -207,18 +202,95 @@ export const EnumGeneration = {
 export type EnumGeneration =
   (typeof EnumGeneration)[keyof typeof EnumGeneration];
 
-export type OutputOptions = {
+type SpecificClientWithOverride =
+  | {
+      override?: OverrideOutput<AngularOverrideOutput, AngularOperationOptions>;
+      client: 'angular';
+    }
+  | {
+      override?: OverrideOutput<HonoOverrideOutput>;
+      client: 'hono';
+    }
+  | {
+      override?: OverrideOutput<QueryOverrideOutput, QueryOperationOptions>;
+      client: 'react-query' | 'svelte-query' | 'vue-query';
+    }
+  | {
+      override?: OverrideOutput<SwrOverrideOutput, SwrOperationOptions>;
+      client: 'swr';
+    }
+  | {
+      override?: OverrideOutput<ZodOverrideOutput, ZodOperationOptions>;
+      client: 'zod';
+    }
+  | {
+      override?: OverrideOutput<FetchOverrideOutput, FetchOperationOptions>;
+      client: 'fetch';
+    };
+type DefaultClientWithOverride = {
+  override?: OverrideOutput;
+  client?:
+    | Exclude<OutputClient, SpecificClientWithOverride['client']>
+    | OutputClientFunc;
+};
+
+type SpecificHttpClientWithOverride = {
+  override?: OverrideOutput<FetchOverrideOutput, FetchOperationOptions>;
+  httpClient?: 'fetch';
+};
+type DefaultHttpClientWithOverride = {
+  override?: OverrideOutput;
+  httpClient?:
+    | Exclude<OutputHttpClient, SpecificHttpClientWithOverride['httpClient']>
+    | OutputClientFunc;
+};
+
+type SpecificClientWithMode = {
+  mode?: 'single';
+  client: 'mcp';
+};
+type DefaultClientWithMode = {
+  mode?: OutputMode;
+  client?:
+    | Exclude<OutputClient, SpecificClientWithMode['client']>
+    | OutputClientFunc;
+};
+
+export type ExtendedOutputOptions = (
+  | SpecificClientWithOverride
+  | DefaultClientWithOverride
+) &
+  (SpecificHttpClientWithOverride | DefaultHttpClientWithOverride) &
+  (SpecificClientWithMode | DefaultClientWithMode);
+
+export type OutputOptions = BaseOutputOptions | ExtendedOutputOptions;
+export type FullOutputOptions = BaseOutputOptions & {
+  mode?: OutputMode;
+  override?: OverrideOutput<
+    AngularOverrideOutput &
+      HonoOverrideOutput &
+      QueryOverrideOutput &
+      SwrOverrideOutput &
+      ZodOverrideOutput &
+      FetchOverrideOutput,
+    AngularOperationOptions &
+      QueryOperationOptions &
+      SwrOperationOptions &
+      ZodOperationOptions &
+      FetchOperationOptions
+  >;
+  client?: OutputClient | OutputClientFunc;
+  httpClient?: OutputHttpClient;
+};
+
+export type BaseOutputOptions = {
   workspace?: string;
   target?: string;
   schemas?: string;
   namingConvention?: NamingConvention;
   fileExtension?: string;
-  mode?: OutputMode;
   // If mock is a boolean, it will use the default mock options (type: msw)
   mock?: boolean | GlobalMockOptions | ClientMockBuilder;
-  override?: OverrideOutput;
-  client?: OutputClient | OutputClientFunc;
-  httpClient?: OutputHttpClient;
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
@@ -406,12 +478,34 @@ export type FormDataType<TMutator> =
       arrayHandling: FormDataArrayHandling;
     };
 
-export type OverrideOutput = {
+export type AngularOverrideOutput = {
+  angular?: AngularOptions;
+};
+export type HonoOverrideOutput = {
+  hono?: HonoOptions;
+};
+export type QueryOverrideOutput = {
+  query?: QueryOptions;
+};
+export type SwrOverrideOutput = {
+  swr?: SwrOptions;
+};
+export type ZodOverrideOutput = {
+  zod?: ZodOptions;
+};
+export type FetchOverrideOutput = {
+  fetch?: FetchOptions;
+};
+
+export type OverrideOutput<
+  TClientSpecific = {},
+  TClientSpecificOperation = {},
+> = TClientSpecific & {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: Mutator;
-  operations?: Record<string, OperationOptions>;
-  tags?: Record<string, OperationOptions>;
+  operations?: Record<string, OperationOptions<TClientSpecificOperation>>;
+  tags?: Record<string, OperationOptions<TClientSpecificOperation>>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
@@ -437,17 +531,11 @@ export type OverrideOutput = {
       suffix?: string;
     };
   };
-  hono?: HonoOptions;
-  query?: QueryOptions;
-  swr?: SwrOptions;
-  angular?: AngularOptions;
-  zod?: ZodOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
     verb: Verbs,
   ) => string;
-  fetch?: FetchOptions;
   requestOptions?: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -644,23 +732,40 @@ export type OverrideInput = {
   transformer?: InputTransformer;
 };
 
-export type OperationOptions = {
+export type AngularOperationOptions = {
+  angular?: Required<AngularOptions>;
+};
+export type QueryOperationOptions = {
+  query?: QueryOptions;
+};
+export type SwrOperationOptions = {
+  swr?: SwrOptions;
+};
+export type ZodOperationOptions = {
+  zod?: ZodOptions;
+};
+export type FetchOperationOptions = {
+  fetch?: FetchOptions;
+};
+
+export type OperationOptions<
+  TClientSpecific = AngularOperationOptions &
+    QueryOperationOptions &
+    SwrOperationOptions &
+    ZodOperationOptions &
+    FetchOperationOptions,
+> = TClientSpecific & {
   transformer?: OutputTransformer;
   mutator?: Mutator;
   mock?: {
     data?: MockData;
     properties?: MockProperties;
   };
-  query?: QueryOptions;
-  angular?: Required<AngularOptions>;
-  swr?: SwrOptions;
-  zod?: ZodOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
     verb: Verbs,
   ) => string;
-  fetch?: FetchOptions;
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
