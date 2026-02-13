@@ -21,7 +21,8 @@ import type { FrameworkAdapter } from './framework-adapter';
 import { getQueryOptionsDefinition } from './query-options';
 
 type NormalizedTarget = {
-  query: string;
+  queryFnName?: string;
+  queryKey?: unknown[];
   params?: string[] | Record<string, string>;
   invalidateMode: 'invalidate' | 'reset';
   file?: string;
@@ -29,12 +30,22 @@ type NormalizedTarget = {
 
 const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
   isString(target)
-    ? { query: target, invalidateMode: 'invalidate' }
-    : { ...target, invalidateMode: target.invalidateMode ?? 'invalidate' };
+    ? {
+        queryFnName: camel(`get-${target}-query-key`),
+        invalidateMode: 'invalidate',
+      }
+    : {
+        ...target,
+        queryFnName: target.query
+          ? camel(`get-${target.query}-query-key`)
+          : undefined,
+        invalidateMode: target.invalidateMode ?? 'invalidate',
+      };
 
 const serializeTarget = (target: NormalizedTarget): string =>
   JSON.stringify({
-    query: target.query,
+    queryFnName: target.queryFnName,
+    queryKey: target.queryKey,
     params: target.params ?? [],
     invalidateMode: target.invalidateMode,
     file: target.file ?? '',
@@ -60,9 +71,11 @@ const generateParamArgs = (
 };
 
 const generateInvalidateCall = (target: NormalizedTarget): string => {
-  const queryKeyFn = camel(`get-${target.query}-query-key`);
   const args = target.params ? generateParamArgs(target.params) : '';
-  return `    queryClient.${target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries'}({ queryKey: ${queryKeyFn}(${args}) });`;
+  const queryKey = target.queryFnName
+    ? `${target.queryFnName}(${args})`
+    : `[${target.queryKey?.join(', ')}]`;
+  return `    queryClient.${target.invalidateMode === 'reset' ? 'resetQueries' : 'invalidateQueries'}({ queryKey: ${queryKey} });`;
 };
 
 export interface MutationHookContext {
@@ -318,9 +331,9 @@ ${mutationHookBody}
 
   const imports: GeneratorImport[] = hasInvalidation
     ? uniqueInvalidates
-        .filter((i) => !!i.file)
+        .filter((i) => !!i.file && !!i.queryFnName)
         .map<GeneratorImport>((i) => ({
-          name: camel(`get-${i.query}-query-key`),
+          name: i.queryFnName!,
           importPath: i.file,
           values: true,
         }))

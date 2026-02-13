@@ -210,6 +210,7 @@ export default defineConfig({
       headers: true,
       override: {
         query: {
+          shouldSplitQueryKey: true,
           mutationInvalidates: [
             {
               onMutations: ['createPets'],
@@ -223,6 +224,7 @@ export default defineConfig({
               invalidates: [
                 { query: 'listPets', invalidateMode: 'reset' },
                 { query: 'healthCheck', file: './health' },
+                { queryKey: ["'api'", "'pets'"], invalidateMode: 'reset' },
                 {
                   query: 'showPetById',
                   params: ['petId'],

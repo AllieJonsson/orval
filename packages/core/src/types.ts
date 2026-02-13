@@ -602,12 +602,24 @@ export type NormalizedZodOptions = {
 
 export type InvalidateTarget =
   | string
-  | {
-      query: string;
-      params?: string[] | Record<string, string>;
+  | ({
       invalidateMode?: 'invalidate' | 'reset';
-      file?: string;
-    };
+    } & (
+      | {
+          query: string;
+          params?: string[] | Record<string, string>;
+          file?: string;
+
+          queryKey?: never;
+        }
+      | {
+          query?: never;
+          params?: never;
+          file?: never;
+
+          queryKey: unknown[];
+        }
+    ));
 
 export type MutationInvalidatesRule = {
   onMutations: string[];

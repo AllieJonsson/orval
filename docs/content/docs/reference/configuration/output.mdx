@@ -631,6 +631,7 @@ export default defineConfig({
                 'listPets',
                 { query: 'showPetById', params: ['petId'], invalidationMode: 'reset' },
                 { query: 'adminPets', file: './admin' },
+                { queryKey: ['"api"', '"pets"'] }
               ],
             },
           ],

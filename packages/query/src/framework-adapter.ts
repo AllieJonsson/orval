@@ -55,7 +55,8 @@ export interface QueryInvocationContext {
 }
 
 interface InvalidateTarget {
-  query: string;
+  queryFnName?: string;
+  queryKey?: unknown[];
   params?: string[] | Record<string, string>;
   invalidateMode: 'invalidate' | 'reset';
 }
